@@ -5,37 +5,62 @@ import (
 )
 
 type queueWithLock struct {
-	data []interface{}
-	sync.Mutex
+	capacity   int
+	data       []interface{}
+	mutex      sync.Mutex
+	readIndex  int
+	writeIndex int
 }
 
-// NewQueue to new a concurrent queue
-func NewQueueWithLock() Queue {
-	return &queueWithLock{data: make([]interface{}, 0, 256)}
+func NewQueueWithLock(cap int) Queue {
+	return &queueWithLock{
+		data:       make([]interface{}, cap),
+		readIndex:  0,
+		writeIndex: 0,
+		capacity:   cap,
+	}
 }
 
 func (q *queueWithLock) Empty() bool {
-	return len(q.data) <= 0
+	return q.readIndex == q.writeIndex
 }
 
 func (q *queueWithLock) Full() bool {
-	return false
+	return q.readIndex == nextIndex(q.writeIndex, q.capacity)
 }
 
 func (q *queueWithLock) Pop() interface{} {
-	q.Mutex.Lock()
-	defer q.Mutex.Unlock()
-	if len(q.data) > 0 {
-		v := q.data[0]
-		q.data = q.data[1:]
-		return v
+	if q.Empty() {
+		return nil
 	}
-	return nil
+
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+	if q.Empty() {
+		return nil
+	}
+
+	readIndex := q.readIndex
+	v := q.data[readIndex]
+	q.readIndex = nextIndex(readIndex, q.capacity)
+	return v
 }
 
 func (q *queueWithLock) Push(v interface{}) bool {
-	q.Mutex.Lock()
-	defer q.Mutex.Unlock()
-	q.data = append(q.data, v)
+	if q.Full() {
+		return false
+	}
+
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+
+	if q.Full() {
+		return false
+	}
+
+	writeIndex := q.writeIndex
+	q.data[writeIndex] = v
+
+	q.writeIndex = nextIndex(writeIndex, q.capacity)
 	return true
 }

@@ -20,7 +20,7 @@ func NewLockFreeQueue(cap int) Queue {
 }
 
 func (q *queueLockFree) Empty() bool {
-	return q.readIndex < q.writeIndex
+	return q.readIndex == q.writeIndex
 }
 
 func (q *queueLockFree) Full() bool {

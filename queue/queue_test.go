@@ -7,9 +7,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-var (
-	gQueue = NewQueueWithLock()
-)
+var ()
 
 // Define the suite, and absorb the built-in basic suite
 // functionality from testify - including a T() method which
@@ -22,7 +20,6 @@ type QueueTestSuite struct {
 // Make sure that Variable is set to five
 // before each test
 func (suite *QueueTestSuite) SetupTest() {
-	suite.Queue = NewCircleArrayQueue(4096)
 }
 
 // In order for 'go test' to run this suite, we need to create
@@ -35,30 +32,61 @@ func TestQueueTestSuite(t *testing.T) {
 // suite.
 func (suite *QueueTestSuite) TestNewQueue() {
 	require := suite.Require()
-	q := suite.Queue
+	size := 128
+	q := NewCircleArrayQueue(size)
 	require.True(q.Empty())
-	q.Push(1)
-	q.Push(3)
-	q.Push(9)
-	require.Equal(1, q.Pop())
-	require.Equal(3, q.Pop())
-	require.Equal(9, q.Pop())
-	require.Equal(true, q.Empty())
+	for i := 1; i < size; i++ {
+		require.False(q.Full())
+		require.True(q.Push(i))
+	}
+	require.True(q.Full())
+	require.False(q.Push(0))
+	for i := 1; i < size; i++ {
+		require.Equal(i, q.Pop())
+	}
+	require.Nil(q.Pop())
+	require.True(q.Empty())
+}
+
+func BenchmarkCircleQueue(b *testing.B) {
+	q := NewCircleArrayQueue(b.N * 2)
+	for i := 0; i < b.N; i++ {
+		q.Push(i)
+	}
+	for i := 0; i < b.N; i++ {
+		q.Pop()
+	}
 }
 
 // Benchmark
-func BenchmarkQueueTestSuite(b *testing.B) {
-	bench := func(pb *testing.PB) {
+func BenchmarkQueueWithLock(b *testing.B) {
+	q := NewQueueWithLock(b.N * 2)
+	b.SetParallelism(8)
+	b.RunParallel(func(pb *testing.PB) {
 		for i := 0; i < b.N; i++ {
-			gQueue.Push(i)
+			q.Push(i)
 		}
 		for i := 0; i < b.N; i++ {
-			gQueue.Pop()
+			q.Pop()
 		}
 		for pb.Next() {
 
 		}
-	}
+	})
+}
+
+func BenchmarkLockFreeQueue(b *testing.B) {
+	q := NewLockFreeQueue(b.N * 2)
 	b.SetParallelism(8)
-	b.RunParallel(bench)
+	b.RunParallel(func(pb *testing.PB) {
+		for i := 0; i < b.N; i++ {
+			q.Push(i)
+		}
+		for i := 0; i < b.N; i++ {
+			q.Pop()
+		}
+		for pb.Next() {
+
+		}
+	})
 }
