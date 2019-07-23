@@ -40,9 +40,8 @@ func (q *queueWithLock) Pop() interface{} {
 		return nil
 	}
 
-	readIndex := q.readIndex
-	v := q.data[readIndex]
-	q.readIndex = nextIndex(readIndex, q.capacity)
+	v := q.data[q.readIndex]
+	q.readIndex = nextIndex(q.readIndex, q.capacity)
 	return v
 }
 
@@ -53,14 +52,11 @@ func (q *queueWithLock) Push(v interface{}) bool {
 
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
-
 	if q.Full() {
 		return false
 	}
 
-	writeIndex := q.writeIndex
-	q.data[writeIndex] = v
-
-	q.writeIndex = nextIndex(writeIndex, q.capacity)
+	q.data[q.writeIndex] = v
+	q.writeIndex = nextIndex(q.writeIndex, q.capacity)
 	return true
 }

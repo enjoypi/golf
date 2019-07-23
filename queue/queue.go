@@ -37,5 +37,6 @@ func (q *queueLockFree) Pop() interface{} {
 }
 
 func (q *queueLockFree) Push(v interface{}) bool {
-	return false
+	q.data = append(q.data, v)
+	return true
 }

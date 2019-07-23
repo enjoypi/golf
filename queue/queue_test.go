@@ -61,7 +61,6 @@ func BenchmarkCircleQueue(b *testing.B) {
 // Benchmark
 func BenchmarkQueueWithLock(b *testing.B) {
 	q := NewQueueWithLock(b.N * 2)
-	b.SetParallelism(8)
 	b.RunParallel(func(pb *testing.PB) {
 		for i := 0; i < b.N; i++ {
 			q.Push(i)
@@ -77,7 +76,6 @@ func BenchmarkQueueWithLock(b *testing.B) {
 
 func BenchmarkLockFreeQueue(b *testing.B) {
 	q := NewLockFreeQueue(b.N * 2)
-	b.SetParallelism(8)
 	b.RunParallel(func(pb *testing.PB) {
 		for i := 0; i < b.N; i++ {
 			q.Push(i)
