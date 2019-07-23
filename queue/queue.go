@@ -1,33 +1,33 @@
 package queue
 
-import (
-	"sync"
-)
-
 // Queue concurrent queue
 type Queue interface {
 	Empty() bool
+	Full() bool
 	Pop() interface{}
-	Push(interface{})
+	Push(interface{}) bool
 }
 
-type qk struct {
-	data []interface{}
-	sync.Mutex
+type queueLockFree struct {
+	data       []interface{}
+	readIndex  int
+	writeIndex int
 }
 
 // NewQueue to new a concurrent queue
-func NewQueue() Queue {
-	return &qk{data: make([]interface{}, 0, 256)}
+func NewLockFreeQueue(cap int) Queue {
+	return &queueLockFree{data: make([]interface{}, 0, cap)}
 }
 
-func (q *qk) Empty() bool {
-	return len(q.data) <= 0
+func (q *queueLockFree) Empty() bool {
+	return q.readIndex < q.writeIndex
 }
 
-func (q *qk) Pop() interface{} {
-	q.Mutex.Lock()
-	defer q.Mutex.Unlock()
+func (q *queueLockFree) Full() bool {
+	return false
+}
+
+func (q *queueLockFree) Pop() interface{} {
 	if len(q.data) > 0 {
 		v := q.data[0]
 		q.data = q.data[1:]
@@ -36,8 +36,6 @@ func (q *qk) Pop() interface{} {
 	return nil
 }
 
-func (q *qk) Push(v interface{}) {
-	q.Mutex.Lock()
-	defer q.Mutex.Unlock()
-	q.data = append(q.data, v)
+func (q *queueLockFree) Push(v interface{}) bool {
+	return false
 }

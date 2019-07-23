@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	gQueue = NewQueue()
+	gQueue = NewQueueWithLock()
 )
 
 // Define the suite, and absorb the built-in basic suite
@@ -22,7 +22,7 @@ type QueueTestSuite struct {
 // Make sure that Variable is set to five
 // before each test
 func (suite *QueueTestSuite) SetupTest() {
-	suite.Queue = NewQueue()
+	suite.Queue = NewCircleArrayQueue(4096)
 }
 
 // In order for 'go test' to run this suite, we need to create
@@ -31,6 +31,22 @@ func TestQueueTestSuite(t *testing.T) {
 	suite.Run(t, new(QueueTestSuite))
 }
 
+// All methods that begin with "Test" are run as tests within a
+// suite.
+func (suite *QueueTestSuite) TestNewQueue() {
+	require := suite.Require()
+	q := suite.Queue
+	require.True(q.Empty())
+	q.Push(1)
+	q.Push(3)
+	q.Push(9)
+	require.Equal(1, q.Pop())
+	require.Equal(3, q.Pop())
+	require.Equal(9, q.Pop())
+	require.Equal(true, q.Empty())
+}
+
+// Benchmark
 func BenchmarkQueueTestSuite(b *testing.B) {
 	bench := func(pb *testing.PB) {
 		for i := 0; i < b.N; i++ {
@@ -45,18 +61,4 @@ func BenchmarkQueueTestSuite(b *testing.B) {
 	}
 	b.SetParallelism(8)
 	b.RunParallel(bench)
-}
-
-// All methods that begin with "Test" are run as tests within a
-// suite.
-func (suite *QueueTestSuite) TestNewQueue() {
-	q := suite.Queue
-	q.Push(1)
-	q.Push(3)
-	q.Push(9)
-	require := suite.Require()
-	require.Equal(1, q.Pop())
-	require.Equal(3, q.Pop())
-	require.Equal(9, q.Pop())
-	require.Equal(true, q.Empty())
 }

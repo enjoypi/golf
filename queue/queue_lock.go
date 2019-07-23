@@ -18,6 +18,10 @@ func (q *queueWithLock) Empty() bool {
 	return len(q.data) <= 0
 }
 
+func (q *queueWithLock) Full() bool {
+	return false
+}
+
 func (q *queueWithLock) Pop() interface{} {
 	q.Mutex.Lock()
 	defer q.Mutex.Unlock()
@@ -29,8 +33,9 @@ func (q *queueWithLock) Pop() interface{} {
 	return nil
 }
 
-func (q *queueWithLock) Push(v interface{}) {
+func (q *queueWithLock) Push(v interface{}) bool {
 	q.Mutex.Lock()
 	defer q.Mutex.Unlock()
 	q.data = append(q.data, v)
+	return true
 }
