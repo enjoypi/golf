@@ -1,9 +1,14 @@
 package queue
 
+// go test -bench=. -gcflags "-N -l" ./...
 import (
 	"testing"
 
 	"github.com/stretchr/testify/suite"
+)
+
+var (
+	gQueue = NewQueue()
 )
 
 // Define the suite, and absorb the built-in basic suite
@@ -14,7 +19,7 @@ type QueueTestSuite struct {
 	Queue
 }
 
-// Make sure that VariableThatShouldStartAtFive is set to five
+// Make sure that Variable is set to five
 // before each test
 func (suite *QueueTestSuite) SetupTest() {
 	suite.Queue = NewQueue()
@@ -26,6 +31,22 @@ func TestQueueTestSuite(t *testing.T) {
 	suite.Run(t, new(QueueTestSuite))
 }
 
+func BenchmarkQueueTestSuite(b *testing.B) {
+	bench := func(pb *testing.PB) {
+		for i := 0; i < b.N; i++ {
+			gQueue.Push(i)
+		}
+		for i := 0; i < b.N; i++ {
+			gQueue.Pop()
+		}
+		for pb.Next() {
+
+		}
+	}
+	b.SetParallelism(8)
+	b.RunParallel(bench)
+}
+
 // All methods that begin with "Test" are run as tests within a
 // suite.
 func (suite *QueueTestSuite) TestNewQueue() {
@@ -33,7 +54,7 @@ func (suite *QueueTestSuite) TestNewQueue() {
 	q.Push(1)
 	q.Push(3)
 	q.Push(9)
-	require:= suite.Require()
+	require := suite.Require()
 	require.Equal(1, q.Pop())
 	require.Equal(3, q.Pop())
 	require.Equal(9, q.Pop())
