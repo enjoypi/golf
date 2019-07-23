@@ -33,7 +33,7 @@ func TestQueueTestSuite(t *testing.T) {
 func (suite *QueueTestSuite) TestNewQueue() {
 	require := suite.Require()
 	size := 128
-	q := NewCircleArrayQueue(size)
+	q := NewCircleArrayQueue(size, false)
 	require.True(q.Empty())
 	for i := 1; i < size; i++ {
 		require.False(q.Full())
@@ -49,7 +49,7 @@ func (suite *QueueTestSuite) TestNewQueue() {
 }
 
 func BenchmarkCircleQueue(b *testing.B) {
-	q := NewCircleArrayQueue(b.N * 2)
+	q := NewCircleArrayQueue(b.N * 2, false)
 	for i := 0; i < b.N; i++ {
 		q.Push(i)
 	}
@@ -60,7 +60,7 @@ func BenchmarkCircleQueue(b *testing.B) {
 
 // Benchmark
 func BenchmarkQueueWithLock(b *testing.B) {
-	q := NewQueueWithLock(b.N * 2)
+	q := NewCircleArrayQueue(b.N * 2, true)
 	b.RunParallel(func(pb *testing.PB) {
 		for i := 0; i < b.N; i++ {
 			q.Push(i)
@@ -74,7 +74,7 @@ func BenchmarkQueueWithLock(b *testing.B) {
 	})
 }
 
-func BenchmarkLockFreeQueue(b *testing.B) {
+func _BenchmarkLockFreeQueue(b *testing.B) {
 	q := NewLockFreeQueue(b.N * 2)
 	b.RunParallel(func(pb *testing.PB) {
 		for i := 0; i < b.N; i++ {
