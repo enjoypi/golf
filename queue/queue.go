@@ -22,7 +22,7 @@ type queueLockFree struct {
 func NewLockFreeQueue(cap int) Queue {
 	return &queueLockFree{
 		capacity:   int32(cap),
-		data:       make([]interface{}, cap),
+		data:       make([]interface{}, cap+1),
 		readIndex:  0,
 		writeIndex: 0,
 	}
