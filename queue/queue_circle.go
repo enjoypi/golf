@@ -8,18 +8,18 @@ type queueCircleArray struct {
 	capacity int
 	parallel bool
 
-	data  []int
+	data  []interface{}
 	mutex sync.Mutex
 
 	readIndex  int
 	writeIndex int
 }
 
-func NewCircleArrayQueue(cap int, parallel bool) *queueCircleArray {
+func NewCircleArrayQueue(cap int, parallel bool) Queue {
 	return &queueCircleArray{
 		capacity:   cap,
 		parallel:   parallel,
-		data:       make([]int, cap),
+		data:       make([]interface{}, cap),
 		readIndex:  0,
 		writeIndex: 0,
 	}
@@ -33,7 +33,7 @@ func (q *queueCircleArray) Full() bool {
 	return q.readIndex == nextIndex(q.writeIndex, q.capacity)
 }
 
-func (q *queueCircleArray) Pop() *int {
+func (q *queueCircleArray) Pop() interface{} {
 	if q.Empty() {
 		return nil
 	}
@@ -53,10 +53,10 @@ func (q *queueCircleArray) Pop() *int {
 	if q.parallel {
 		q.mutex.Unlock()
 	}
-	return &v
+	return v
 }
 
-func (q *queueCircleArray) Push(v int) bool {
+func (q *queueCircleArray) Push(v interface{}) bool {
 	if q.Full() {
 		return false
 	}

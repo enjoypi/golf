@@ -41,34 +41,48 @@ func (suite *QueueTestSuite) TestNewQueue() {
 	require.True(q.Full())
 	require.False(q.Push(0))
 	for i := 1; i < size; i++ {
-		require.Equal(i, *q.Pop())
+		require.Equal(i, q.Pop())
 	}
 	require.Nil(q.Pop())
 	require.True(q.Empty())
 }
 
-func BenchmarkCircleQueue(b *testing.B) {
-	q := NewCircleArrayQueue(b.N*2, false)
-	for i := 0; i < b.N; i++ {
-		q.Push(i)
-	}
-	for i := 0; i < b.N; i++ {
-		q.Pop()
+func doing(n int, q Queue) {
+	for i := 0; i < n*2; i++ {
+		if i%2 == 0 {
+			q.Push(i)
+		} else {
+			q.Pop()
+		}
 	}
 }
 
-// Benchmark
+func BenchmarkCircleQueue(b *testing.B) {
+	q := NewCircleArrayQueue(b.N, false)
+	doing(b.N, q)
+}
+
+func BenchmarkSingleCircleQueue(b *testing.B) {
+	q := NewCircleArrayQueue(b.N, true)
+	doing(b.N, q)
+}
+
 func BenchmarkQueueWithLock(b *testing.B) {
-	q := NewCircleArrayQueue(b.N*2, true)
+	q := NewCircleArrayQueue(b.N, true)
 	b.SetParallelism(4)
 	b.RunParallel(func(pb *testing.PB) {
-		for i := 0; i < b.N; i++ {
-			if i%2 == 0 {
-				q.Push(i)
-			} else {
-				q.Pop()
-			}
+		doing(b.N, q)
+		for pb.Next() {
+
 		}
+	})
+}
+
+func BenchmarkQueueChannel(b *testing.B) {
+	q := NewChannelQueue(b.N)
+	b.SetParallelism(4)
+	b.RunParallel(func(pb *testing.PB) {
+		doing(b.N, q)
 		for pb.Next() {
 
 		}
@@ -76,16 +90,10 @@ func BenchmarkQueueWithLock(b *testing.B) {
 }
 
 func BenchmarkLockFreeQueue(b *testing.B) {
-	q := NewLockFreeQueue(b.N * 2)
+	q := NewLockFreeQueue(b.N)
 	b.SetParallelism(4)
 	b.RunParallel(func(pb *testing.PB) {
-		for i := 0; i < b.N; i++ {
-			if i%2 == 0 {
-				q.Push(i)
-			} else {
-				q.Pop()
-			}
-		}
+		doing(b.N, q)
 		for pb.Next() {
 
 		}
