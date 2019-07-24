@@ -1,24 +1,27 @@
 package queue
 
+import "sync/atomic"
+
 // Queue concurrent queue
 type Queue interface {
 	Empty() bool
 	Full() bool
 	Pop() interface{}
 	Push(interface{}) bool
+	Size() (int, int)
 }
 
 type queueLockFree struct {
-	capacity   int
+	capacity   int32
 	data       []interface{}
-	readIndex  int
-	writeIndex int
+	readIndex  int32
+	writeIndex int32
 }
 
 // NewQueue to new a concurrent queue
 func NewLockFreeQueue(cap int) Queue {
 	return &queueLockFree{
-		capacity:   cap,
+		capacity:   int32(cap),
 		data:       make([]interface{}, cap),
 		readIndex:  0,
 		writeIndex: 0,
@@ -45,12 +48,24 @@ func (q *queueLockFree) Pop() interface{} {
 }
 
 func (q *queueLockFree) Push(v interface{}) bool {
-	// double check for multi goroutine
-	if q.Full() {
-		return false
+	var currentWriteIndex int32
+	for {
+		currentWriteIndex = q.writeIndex
+
+		if q.readIndex == nextIndex(currentWriteIndex, q.capacity) {
+			return false
+		}
+
+		if atomic.CompareAndSwapInt32(&q.writeIndex, currentWriteIndex, currentWriteIndex+1) {
+			break
+		}
+
 	}
 
-	q.data[q.writeIndex] = v
-	q.writeIndex = nextIndex(q.writeIndex, q.capacity)
+	q.data[currentWriteIndex] = v
 	return true
+}
+
+func (q *queueLockFree) Size() (int, int) {
+	return int(q.writeIndex - q.readIndex), cap(q.data)
 }

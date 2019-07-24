@@ -5,19 +5,19 @@ import (
 )
 
 type queueCircleArray struct {
-	capacity int
+	capacity int32
 	parallel bool
 
 	data  []interface{}
 	mutex sync.Mutex
 
-	readIndex  int
-	writeIndex int
+	readIndex  int32
+	writeIndex int32
 }
 
 func NewCircleArrayQueue(cap int, parallel bool) Queue {
 	return &queueCircleArray{
-		capacity:   cap,
+		capacity:   int32(cap),
 		parallel:   parallel,
 		data:       make([]interface{}, cap),
 		readIndex:  0,
@@ -79,7 +79,11 @@ func (q *queueCircleArray) Push(v interface{}) bool {
 	return true
 }
 
-func nextIndex(i int, cap int) int {
+func (q *queueCircleArray) Size() (int, int) {
+	return len(q.data), cap(q.data)
+}
+
+func nextIndex(i int32, cap int32) int32 {
 	if i+1 >= cap {
 		return 0
 	} else {

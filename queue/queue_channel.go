@@ -17,7 +17,7 @@ func (q *queueChannel) Empty() bool {
 }
 
 func (q *queueChannel) Full() bool {
-	return len(q.data) >= q.capacity
+	return len(q.data) >= cap(q.data)
 }
 
 func (q *queueChannel) Pop() interface{} {
@@ -35,4 +35,8 @@ func (q *queueChannel) Push(v interface{}) bool {
 	}
 	q.data <- v
 	return true
+}
+
+func (q *queueChannel) Size() (int, int) {
+	return len(q.data), q.capacity
 }

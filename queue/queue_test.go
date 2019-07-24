@@ -4,6 +4,8 @@ package queue
 import (
 	"testing"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/stretchr/testify/suite"
 )
 
@@ -29,24 +31,36 @@ func TestQueueTestSuite(t *testing.T) {
 
 // All methods that begin with "Test" are run as tests within a
 // suite.
-func (suite *QueueTestSuite) TestNewQueue() {
-	require := suite.Require()
+func (suite *QueueTestSuite) TestQueue() {
 	size := 128
 	q := NewCircleArrayQueue(size, false)
+	testQueue(&suite.Suite, q, size)
+	q = NewCircleArrayQueue(size, true)
+	testQueue(&suite.Suite, q, size)
+	q = NewChannelQueue(size)
+	testQueue(&suite.Suite, q, size)
+	q = NewLockFreeQueue(size)
+	testQueue(&suite.Suite, q, size)
+}
+
+func testQueue(suite *suite.Suite, q Queue, size int) {
+	require := suite.Require()
 	require.True(q.Empty())
-	for i := 1; i < size; i++ {
+	for i := 0; i < size; i++ {
 		require.False(q.Full())
 		require.True(q.Push(i))
 	}
+	logrus.Info(q.Size())
 	require.True(q.Full())
 	require.False(q.Push(0))
-	for i := 1; i < size; i++ {
+	for i := 0; i < size; i++ {
 		require.Equal(i, q.Pop())
 	}
 	require.Nil(q.Pop())
 	require.True(q.Empty())
 }
 
+// Benchmark
 func doing(n int, q Queue) {
 	for i := 0; i < n*2; i++ {
 		if i%2 == 0 {
