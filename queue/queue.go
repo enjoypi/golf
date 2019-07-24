@@ -9,6 +9,7 @@ type Queue interface {
 }
 
 type queueLockFree struct {
+	capacity   int
 	data       []interface{}
 	readIndex  int
 	writeIndex int
@@ -16,7 +17,12 @@ type queueLockFree struct {
 
 // NewQueue to new a concurrent queue
 func NewLockFreeQueue(cap int) Queue {
-	return &queueLockFree{data: make([]interface{}, 0, cap)}
+	return &queueLockFree{
+		capacity:   cap,
+		data:       make([]interface{}, cap),
+		readIndex:  0,
+		writeIndex: 0,
+	}
 }
 
 func (q *queueLockFree) Empty() bool {
@@ -24,19 +30,27 @@ func (q *queueLockFree) Empty() bool {
 }
 
 func (q *queueLockFree) Full() bool {
-	return false
+	return q.readIndex == nextIndex(q.writeIndex, q.capacity)
 }
 
 func (q *queueLockFree) Pop() interface{} {
-	if len(q.data) > 0 {
-		v := q.data[0]
-		q.data = q.data[1:]
-		return v
+	// double check for multi goroutine
+	if q.Empty() {
+		return nil
 	}
-	return nil
+
+	v := q.data[q.readIndex]
+	q.readIndex = nextIndex(q.readIndex, q.capacity)
+	return v
 }
 
 func (q *queueLockFree) Push(v interface{}) bool {
-	q.data = append(q.data, v)
+	// double check for multi goroutine
+	if q.Full() {
+		return false
+	}
+
+	q.data[q.writeIndex] = v
+	q.writeIndex = nextIndex(q.writeIndex, q.capacity)
 	return true
 }
