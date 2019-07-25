@@ -37,14 +37,35 @@ func (q *queueLockFree) Full() bool {
 }
 
 func (q *queueLockFree) Pop() interface{} {
-	// double check for multi goroutine
-	if q.Empty() {
-		return nil
+	for i := 1; i < 10; i++ {
+		// to ensure thread-safety when there is more than 1 producer thread
+		// a second index is defined (m_maximumReadIndex)
+		currentReadIndex := q.readIndex
+
+		if currentReadIndex == q.writeIndex {
+			// the queue is empty or
+			// a producer thread has allocate space in the queue but is
+			// waiting to commit the data into it
+			return nil
+		}
+
+		// retrieve the data from the queue
+		v := q.data[currentReadIndex]
+
+		// try to perfrom now the CAS operation on the read index. If we succeed
+		// a_data already contains what m_readIndex pointed to before we
+		// increased it
+		if atomic.CompareAndSwapInt32(&q.readIndex, currentReadIndex, currentReadIndex+1) {
+			return v
+		}
+
+		// it failed retrieving the element off the queue. Someone else must
+		// have read the element stored at countToIndex(currentReadIndex)
+		// before we could perform the CAS operation
+
 	}
 
-	v := q.data[q.readIndex]
-	q.readIndex = nextIndex(q.readIndex, q.capacity)
-	return v
+	return nil
 }
 
 func (q *queueLockFree) Push(v interface{}) bool {
@@ -52,6 +73,7 @@ func (q *queueLockFree) Push(v interface{}) bool {
 	for {
 		currentWriteIndex = q.writeIndex
 
+		// full
 		if q.readIndex == nextIndex(currentWriteIndex, q.capacity) {
 			return false
 		}
